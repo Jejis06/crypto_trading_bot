@@ -1,0 +1,12 @@
+{
+    "name": "BTC Instant Buyer",
+    "strategy": "instant_buy",
+    "symbol": "BTCUSDT",
+    "investment_amount": 100,
+    "profit_target": 1.02,
+    "stop_loss": 0.98,
+    "min_volume_24h": 1000000,
+    "max_spread_percent": 0.5,
+    "enable_trailing_stop": false,
+    "description": "Bot that immediately buys BTC when started"
+} 

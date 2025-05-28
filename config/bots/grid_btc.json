@@ -1,0 +1,12 @@
+{
+    "name": "BTC Grid Trader",
+    "strategy": "grid",
+    "symbol": "BTCUSDT",
+    "investment_amount": 500,
+    "grid_levels": 10,
+    "grid_spread_percent": 0.5,
+    "max_spread_percent": 1.0,
+    "auto_adjust_levels": true,
+    "min_volume_24h": 1000000,
+    "description": "Grid trading bot for BTC/USDT with 10 levels and 0.5% spread between levels"
+} 

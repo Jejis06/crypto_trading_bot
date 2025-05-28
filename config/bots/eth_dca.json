@@ -1,0 +1,14 @@
+{
+    "name": "ETH DCA Bot",
+    "strategy": "dca",
+    "symbol": "ETHUSDT",
+    "investment_amount": 100,
+    "interval_hours": 24,
+    "total_periods": 30,
+    "profit_target": 1.02,
+    "stop_loss": 0.98,
+    "min_volume_24h": 1000000,
+    "max_spread_percent": 0.5,
+    "enable_trailing_stop": false,
+    "description": "Daily DCA bot for ETH/USDT over 30 days with profit taking and stop loss"
+} 
