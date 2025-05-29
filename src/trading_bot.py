@@ -17,9 +17,16 @@ class TradingBot:
         self.thread = None
         
         # Trading parameters
-        self.quantity = config.get('quantity', 0.001)
+        self.investment_amount = config.get('investment_amount', 100.0)
         self.profit_target = config.get('profit_target', 1.02)
         self.stop_loss = config.get('stop_loss', 0.98)
+        self.trailing_stop = config.get('trailing_stop', 0.005)
+        self.min_volume_24h = config.get('min_volume_24h', 10000)
+        self.min_spread = config.get('min_spread', 0.001)
+        
+        # State tracking
+        self.current_position = None
+        self.trade_history = []
         
         # Validate symbol
         try:
@@ -27,6 +34,16 @@ class TradingBot:
         except BinanceAPIException as e:
             logger.error(f"Invalid symbol {self.symbol}: {str(e)}")
             raise
+
+    def __getitem__(self, key):
+        """Make the bot subscriptable to access config items."""
+        if hasattr(self, key):
+            return getattr(self, key)
+        return self.config.get(key)
+        
+    def __contains__(self, key):
+        """Support 'in' operator for config checking."""
+        return hasattr(self, key) or key in self.config
 
     def start(self):
         """Start the trading bot in a separate thread."""

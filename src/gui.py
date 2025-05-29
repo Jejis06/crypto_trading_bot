@@ -7,8 +7,10 @@ import logging
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QLineEdit, QPushButton, 
                             QTreeWidget, QTreeWidgetItem, QTextEdit, 
-                            QGroupBox, QMessageBox, QTabWidget, QTableWidget, QTableWidgetItem)
+                            QGroupBox, QMessageBox, QTabWidget, QTableWidget, 
+                            QTableWidgetItem, QDialog)
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QMutex
+from PyQt5.QtGui import QTextCursor
 from PyQt5.QtChart import QChart, QChartView, QPieSeries, QLineSeries, QValueAxis
 from bot_manager import BotManager
 from portfolio_bot import PortfolioBot
@@ -17,10 +19,22 @@ from bot_loader import BotLoader
 import pyqtgraph as pg
 import numpy as np
 
+# Register QTextCursor for queued connections
+from PyQt5.QtCore import qRegisterMetaType
+qRegisterMetaType(QTextCursor)
+
 # Set up logging
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO,
-                   format='%(asctime)s - %(levelname)s - %(message)s')
+
+class LogHandler(logging.Handler):
+    def __init__(self, text_widget):
+        super().__init__()
+        self.text_widget = text_widget
+        
+    def emit(self, record):
+        msg = self.format(record)
+        # Ensure thread safety by using QTimer
+        QTimer.singleShot(0, lambda: self.text_widget.append(msg))
 
 class UpdateSignals(QObject):
     price_updated = pyqtSignal(str, str)  # symbol, price
@@ -109,14 +123,12 @@ class TradingBotGUI(QMainWindow):
         self.setGeometry(100, 100, 1200, 800)
         
         self.bot_manager = None
-        self.portfolio_bot = None
         self.credentials_manager = CredentialsManager()
         self.update_signals = UpdateSignals()
         self.price_update_timer = QTimer()
         self.price_update_timer.timeout.connect(self._update_data)
         self.price_update_timer.setInterval(5000)  # Update every 5 seconds
         
-        self.portfolio_value_history = []
         self.update_lock = Lock()
         self.symbol_items = {}  # Cache for tree widget items
         self.bot_dialogs = {}
@@ -364,22 +376,21 @@ class TradingBotGUI(QMainWindow):
             bot_loader = BotLoader(self.bot_manager.client)
             
             logger.info("Loading bot configurations...")
-            trading_bots, self.portfolio_bot = bot_loader.load_all_bots()
-            logger.info(f"Loaded {len(trading_bots)} trading bots and {'a' if self.portfolio_bot else 'no'} portfolio bot")
+            bots = bot_loader.load_bots()
             
-            if not trading_bots and not self.portfolio_bot:
-                raise ValueError("No valid bots were loaded. Please check your configuration files.")
+            if not bots:
+                raise ValueError("No valid bots were loaded. Please check your network connection and Binance API status.")
             
-            # Add trading bots to manager
-            for bot in trading_bots:
+            # Add bots to manager
+            for bot in bots:
                 try:
                     self.bot_manager.add_bot(bot)
-                    self._add_bot_to_tree(bot.config)
-                    logger.info(f"Added bot to manager: {bot.config.get('name', 'Unknown')}")
+                    self._add_bot_to_tree(bot)
+                    logger.info(f"Added bot to manager: {bot.symbol}")
                 except Exception as e:
                     logger.error(f"Failed to add bot to manager: {str(e)}", exc_info=True)
             
-            QMessageBox.information(self, "Success", "Connected to Binance testnet successfully!")
+            QMessageBox.information(self, "Success", f"Connected to Binance testnet successfully! Loaded {len(bots)} bots.")
             self.price_update_timer.start()
             
         except Exception as e:
@@ -388,12 +399,11 @@ class TradingBotGUI(QMainWindow):
             logger.error(error_msg)
             QMessageBox.critical(self, "Error", error_msg)
 
-    def _add_bot_to_tree(self, config):
+    def _add_bot_to_tree(self, bot):
         """Add bot to tree widget and cache the item."""
         item = QTreeWidgetItem(self.status_tree)
-        symbol = config.get('symbol', 'Unknown')
-        item.setText(0, symbol)
-        item.setText(1, config.get('strategy', 'simple'))
+        item.setText(0, bot.symbol)
+        item.setText(1, "Simple")  # All bots are simple strategy now
         item.setText(2, "Loading...")  # Current Price
         item.setText(3, "No Position")  # Position Size
         item.setText(4, "-")  # Entry Price
@@ -402,7 +412,7 @@ class TradingBotGUI(QMainWindow):
         item.setText(7, "-")  # P/L %
         item.setText(8, "Stopped")  # Status
         
-        self.symbol_items[symbol] = item
+        self.symbol_items[bot.symbol] = item
         
         # Adjust column widths
         for i in range(9):
@@ -451,28 +461,18 @@ class TradingBotGUI(QMainWindow):
         """Fetch updates in background thread."""
         with self.update_lock:
             try:
-                # Update trading bot data
-                for symbol, item in self.symbol_items.items():
-                    try:
-                        # Get bot status
-                        bot = next(b for b in self.bot_manager.bots if b.symbol == symbol)
-                        status = bot.get_status()
-                        if status:
-                            self.update_signals.bot_status_updated.emit(symbol, status)
-                    except Exception as e:
-                        logger.error(f"Error updating {symbol}: {str(e)}")
+                # Get status of all bots
+                statuses = self.bot_manager.get_bot_statuses()
                 
-                # Update portfolio data
-                if self.portfolio_bot:
-                    portfolio_data = self.portfolio_bot.get_portfolio_value()
-                    self.update_signals.portfolio_updated.emit(portfolio_data)
-                    self.portfolio_bot.analyze_and_trade()
+                # Update UI for each bot
+                for status in statuses:
+                    self.update_signals.bot_status_updated.emit(status['symbol'], status)
                     
             except Exception as e:
                 logger.error(f"Error in update thread: {str(e)}")
 
     def _update_portfolio_charts(self, portfolio_data):
-        if not self.portfolio_bot:
+        if not self.bot_manager:
             return
         
         # Update pie chart
