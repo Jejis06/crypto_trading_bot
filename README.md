@@ -1,36 +1,33 @@
-# Crypto Trading Bot with GUI
+# Crypto Trading Bot
 
-A Python-based cryptocurrency trading bot with a modern PyQt5 GUI interface, supporting both individual trading strategies and portfolio management. The bot operates on Binance's testnet for safe testing and development.
+A Python-based cryptocurrency trading bot with a modern GUI interface that automates trading on Binance using customizable strategies.
 
 ## Features
 
-- **Modern GUI Interface**
-  - Real-time portfolio visualization with charts
-  - Live price updates and trade monitoring
-  - Portfolio composition view
-  - Trade history logging
-  - Interactive controls for bot management
+- **Modern PyQt5-based GUI Interface**
+  - Real-time price updates
+  - Position tracking
+  - Profit/Loss monitoring
+  - Trading history visualization
+  - Multi-bot management interface
 
-- **Portfolio Management**
-  - Manages a diversified portfolio of up to 10 cryptocurrencies
-  - Automatic position management with profit targets and stop losses
-  - Real-time portfolio value tracking
-  - Individual position monitoring
-  - Profit/Loss visualization
+- **Action-Based Trading System**
+  - Simple, robust trading decisions ("buy", "sell", "waiting")
+  - Built-in position tracking
+  - Automatic quantity calculation
+  - Risk management features
 
-- **Trading Features**
-  - Configurable trading strategies via JSON
-  - Support for multiple trading pairs
-  - Real-time price monitoring
-  - Automatic trade execution
-  - Risk management with stop-loss
-  - Position sizing and quantity calculations
+- **Pre-configured Trading Pairs**
+  - Major cryptocurrencies (BTC, ETH, BNB)
+  - Popular altcoins (ADA, DOT, SOL)
+  - DeFi tokens (UNI, AAVE, LINK)
+  - Meme coins (DOGE, SHIB)
 
-## Prerequisites
-
-- Python 3.8 or higher
-- Binance API credentials (Testnet)
-- macOS, Linux, or Windows
+- **Risk Management**
+  - Tiered investment amounts based on cryptocurrency category
+  - Built-in stop-loss and take-profit mechanisms
+  - Position size management
+  - Real-time profit/loss tracking
 
 ## Installation
 
@@ -42,113 +39,108 @@ cd crypto_trading_bot
 
 2. Create and activate a virtual environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+python -m venv env
+source env/bin/activate  # On Windows: env\Scripts\activate
 ```
 
-3. Install required packages:
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Configuration
 
-1. Create a Binance testnet account and get API credentials from [Binance Testnet](https://testnet.binance.vision/)
+1. **Binance API Setup**
+   - Create a Binance account if you don't have one
+   - Create API keys from your Binance account
+   - Enable testnet for testing (recommended)
 
-2. Configure your trading strategies in `config/bots/` directory:
-   - Use `portfolio_bot.json` for portfolio management settings (manages multiple cryptocurrencies)
-   - Use `simple_bot.json` for single-pair trading (included example for BTC/USDT)
-   - Add custom strategy configurations as needed
-
-### Bot Configuration Types
-
-#### Simple Bot Configuration
-For single-pair trading, use this format:
-```json
-{
-    "name": "Simple Trading Bot",
-    "symbol": "BTCUSDT",        // Trading pair
-    "strategy": "simple",       // Strategy type
-    "investment_amount": 100,   // Amount to invest per trade
-    "profit_target": 1.02,     // 2% profit target
-    "stop_loss": 0.98,         // 2% stop loss
-    "description": "Simple trading bot that trades BTC/USDT pair"
-}
-```
-
-#### Portfolio Bot Configuration
-For managing multiple cryptocurrencies:
-```json
-{
-    "name": "Diversified Portfolio Bot",
-    "strategy": "portfolio",
-    "symbols": ["BTCUSDT", "ETHUSDT", "BNBUSDT", ...],
-    "investment_per_coin": 100,
-    "profit_target": 1.05,
-    "stop_loss": 0.95,
-    "max_holdings": 10,
-    "description": "Diversified portfolio bot that manages multiple cryptocurrencies"
-}
-```
+2. **Bot Configuration**
+   - Trading pairs and investment amounts are defined in `src/bot_definitions.py`
+   - Each bot category has pre-set investment amounts:
+     * Major cryptocurrencies: $100 per trade
+     * Popular altcoins: $50 per trade
+     * DeFi tokens: $30 per trade
+     * Meme coins: $20 per trade
 
 ## Usage
 
-1. Start the bot:
+1. Start the GUI:
 ```bash
 python src/gui.py
 ```
 
-2. In the GUI:
-   - Enter your Binance API credentials
-   - Click "Connect" to establish connection
-   - Use the control buttons to start/stop trading
-   - Monitor your portfolio and trades in real-time
+2. Enter your Binance API credentials in the GUI
+3. The system will automatically:
+   - Connect to Binance
+   - Load and validate available trading pairs
+   - Initialize the trading bots
+   - Start monitoring the market
+
+4. Use the GUI to:
+   - Monitor bot status and positions
+   - View real-time prices and P/L
+   - Start/stop trading
+   - View trading history
+
+## Trading Strategy
+
+The default SimpleBot implements a moving average crossover strategy:
+
+- **Entry Conditions**:
+  - Short-term MA (6-hour) crosses above long-term MA (24-hour)
+  - Current price is below the long-term MA
+
+- **Exit Conditions**:
+  - 2% profit target reached
+  - 2% stop loss triggered
+  - Short-term MA crosses below long-term MA
 
 ## Project Structure
 
 ```
 crypto_trading_bot/
 ├── src/
-│   ├── gui.py              # Main GUI implementation
-│   ├── portfolio_bot.py    # Portfolio management logic
-│   └── bot_manager.py      # Bot management and coordination
-├── config/
-│   └── bots/
-│       └── portfolio_bot.json  # Portfolio configuration
-├── requirements.txt        # Project dependencies
-├── README.md              # Project documentation
-└── .gitignore            # Git ignore rules
+│   ├── gui.py              # Main GUI application
+│   ├── base_bot.py         # Abstract base class for bots
+│   ├── simple_bot.py       # Implementation of trading strategy
+│   ├── bot_manager.py      # Manages multiple bots
+│   ├── bot_loader.py       # Loads bot configurations
+│   ├── bot_definitions.py  # Defines available trading bots
+│   └── credentials_manager.py  # Handles API credentials
+├── requirements.txt
+└── README.md
 ```
 
-## Trading Strategy
+## Dependencies
 
-The default portfolio strategy:
-- Monitors 10 popular cryptocurrencies
-- Buys when price is below 24-hour average
-- Takes profit at 5% gain
-- Implements stop-loss at 2% loss
-- Manages position sizes automatically
-- Maintains diversified portfolio
+- Python 3.8+
+- PyQt5
+- python-binance
+- numpy
+- pyqtgraph
+- pandas
 
 ## Security Notes
 
-- Never share your API credentials
-- Use testnet for development and testing
-- Review all trading parameters before live trading
-- Monitor bot activity regularly
+- Never share your API keys
+- Use testnet for testing
+- Start with small investment amounts
+- Monitor your positions regularly
+- The bot uses market orders by default
+
+## Disclaimer
+
+This software is for educational purposes only. Use at your own risk. The authors are not responsible for any financial losses incurred using this software. Cryptocurrency trading is highly risky and can result in significant losses.
 
 ## Contributing
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Disclaimer
-
-This bot is for educational purposes only. Cryptocurrency trading carries significant risks. Use this software at your own risk. The authors are not responsible for any financial losses incurred through the use of this software. 
+MIT License - See LICENSE file for details 
